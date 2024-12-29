@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Search } from 'lucide-react';
 // import './URLSearchTable.css';  // Make sure to create this CSS file
 
 const App = () => {
-  const [url, setUrl] = useState('');
+  const [url, setUrl] = useState('https://m.media-amazon.com/images/I/51JbreBubML._AC_UY327_FMwebp_QL65_.jpg');
   const [showTable, setShowTable] = useState(false);
   const [urlError, setUrlError] = useState('');
   const [isSearchClicked, setIsSearchClicked] = useState(false);
+  const [data, setData] = useState([]);
 
   const dummyData = [
     { id: 1, name: "Product 1", url: "https://example.com/image1.jpg", price: 29.99 },
@@ -18,13 +20,14 @@ const App = () => {
     let timer;
     if (isSearchClicked) {
       setShowTable(true);
+      fetchData(url); 
       timer = setTimeout(() => {
         setShowTable(false);
         setIsSearchClicked(false);
       }, 10000);
     }
     return () => clearTimeout(timer);
-  }, [isSearchClicked]);
+  }, [isSearchClicked, url]);
 
   const validateUrl = (inputUrl) => {
     const urlPattern = /^https?:\/\/.+\.(jpg|jpeg)$/i;
@@ -54,6 +57,16 @@ const App = () => {
     }
     
     setIsSearchClicked(true);
+  };
+
+  const fetchData = async (inputUrl) => {
+    try {
+      const response = await axios.post('', { url: inputUrl });
+      setData(response.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setData(dummyData); // Set dummy data if API call fails
+    }
   };
 
   return (
@@ -97,7 +110,7 @@ const App = () => {
               </tr>
             </thead>
             <tbody>
-              {dummyData.map((item) => (
+              {data.map((item) => (
                 <tr key={item.id}>
                   <td>{item.id}</td>
                   <td>{item.name}</td>
