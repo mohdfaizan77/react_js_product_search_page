@@ -1,32 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Search } from 'lucide-react';
-// import './URLSearchTable.css';  // Make sure to create this CSS file
 
 const App = () => {
-  const [url, setUrl] = useState('https://m.media-amazon.com/images/I/51JbreBubML._AC_UY327_FMwebp_QL65_.jpg');
+  const [url, setUrl] = useState('https://m.media-amazon.com/images/I/61utX8kBDlL._SY695_.jpg');
   const [showTable, setShowTable] = useState(false);
   const [urlError, setUrlError] = useState('');
   const [isSearchClicked, setIsSearchClicked] = useState(false);
   const [data, setData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const dummyData = [
-    { id: 1, name: "Product 1", url: "https://example.com/image1.jpg", price: 29.99 },
-    { id: 2, name: "Product 2", url: "https://example.com/image2.jpg", price: 39.99 },
-    { id: 3, name: "Product 3", url: "https://example.com/image3.jpg", price: 49.99 },
-  ];
+  const dummyData = {
+    sample: [
+      {
+        productName: 'JioTag Air Blue Bluetooth Tracker Iteam Finder',
+        price: '₹ 2,999.00 INR',
+        retailer: 'Ajio.com',
+        numberOfReviews: 'No reviews',
+        stockStatus: 'Stock status unknown',
+        brand: 'JioTag',
+        url: 'https://www.ajio.com/jio-jiotag-air-blue-bluetooth-tracker-iteam-finder/p/493072393',
+        imageUrl: 'Image not available'
+      }
+    ]
+  };
 
   useEffect(() => {
-    let timer;
     if (isSearchClicked) {
       setShowTable(true);
-      fetchData(url); 
-      timer = setTimeout(() => {
-        setShowTable(false);
-        setIsSearchClicked(false);
-      }, 10000);
+      fetchData(url); // Fetch data when search is clicked
     }
-    return () => clearTimeout(timer);
   }, [isSearchClicked, url]);
 
   const validateUrl = (inputUrl) => {
@@ -37,7 +40,7 @@ const App = () => {
   const handleUrlChange = (e) => {
     const inputUrl = e.target.value;
     setUrl(inputUrl);
-    
+
     if (inputUrl && !validateUrl(inputUrl)) {
       setUrlError('Please enter a valid JPG image URL (http:// or https://)');
     } else {
@@ -50,22 +53,34 @@ const App = () => {
       setUrlError('Please enter a URL');
       return;
     }
-    
+
     if (!validateUrl(url)) {
       setUrlError('Please enter a valid JPG image URL');
       return;
     }
-    
+
+    // Disable the search button while loading
+    setIsLoading(true);
     setIsSearchClicked(true);
+  };
+
+  const handleClear = () => {
+    setData([]);
+    setShowTable(false);
+    setUrl('');
+    setUrlError('');
   };
 
   const fetchData = async (inputUrl) => {
     try {
-      const response = await axios.post('', { url: inputUrl });
-      setData(response.data);
+      const response = await axios.post('http://localhost:5000/searchproduct', { url: inputUrl });
+      setData(response.data.sample);
     } catch (error) {
       console.error('Error fetching data:', error);
-      setData(dummyData); // Set dummy data if API call fails
+      setData(dummyData.sample); // Set dummy data if API call fails
+    } finally {
+      setIsLoading(false);
+      setIsSearchClicked(false); // Reset search state after fetching data
     }
   };
 
@@ -85,9 +100,13 @@ const App = () => {
             placeholder="Enter JPG image URL"
             className="search-input"
           />
-          <button onClick={handleSearch} className="search-button">
+          <button
+            onClick={handleSearch}
+            className="search-button"
+            disabled={isLoading} // Disable the button while loading
+          >
             <Search size={20} />
-            Search
+            {isLoading ? 'Searching...' : 'Search'}
           </button>
         </div>
 
@@ -98,24 +117,49 @@ const App = () => {
         )}
       </div>
 
+      {isLoading && (
+        <div className="loading-message">
+          Loading data, please wait...
+        </div>
+      )}
+
       {showTable && (
         <div className="table-container">
+          <button onClick={handleClear} className="clear-button">
+            Clear Table
+          </button>
           <table>
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>URL</th>
+                <th>Product Name</th>
                 <th>Price</th>
+                <th>Retailer</th>
+                <th>Number of Reviews</th>
+                <th>Stock Status</th>
+                <th>Brand</th>
+                <th>URL</th>
+                <th>Image</th>
               </tr>
             </thead>
             <tbody>
-              {data.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.id}</td>
-                  <td>{item.name}</td>
-                  <td className="url-cell">{item.url}</td>
-                  <td>${item.price.toFixed(2)}</td>
+              {data.map((item, index) => (
+                <tr key={index}>
+                  <td>{item.productName}</td>
+                  <td>{item.price}</td>
+                  <td>{item.retailer}</td>
+                  <td>{item.numberOfReviews}</td>
+                  <td>{item.stockStatus}</td>
+                  <td>{item.brand}</td>
+                  <td className="url-cell">
+                    <a href={item.url} target="_blank" rel="noopener noreferrer">View Product</a>
+                  </td>
+                  <td>
+                    {item.imageUrl !== 'Image not available' ? (
+                      <img src={item.imageUrl} alt={item.productName} width="100" />
+                    ) : (
+                      item.imageUrl
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
